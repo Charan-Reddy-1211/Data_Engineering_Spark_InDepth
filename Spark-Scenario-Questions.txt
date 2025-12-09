@@ -109,7 +109,7 @@ Response:
 	of the job. We can optimize by below technique
 	
 	1. Repartition
-	2.We can also enable the AQE which can merge small shuffle partitions and use options like maxrecordsperfile to control output file size.
+	2. We can also enable the AQE which can merge small shuffle partitions and use options like maxrecordsperfile to control output file size.
 	
 ---------------------------------------------------------------------------------------------------------------
 
@@ -155,3 +155,38 @@ Response:
 	4. Duplicates
 	5. Reference data validations like config data match
 	6. Data type checks
+	
+--------------------------------------------------------------------------------------------------------------------------
+
+Scenario: How did you orchestrate your Spark pipeline?
+
+Response:
+	In our project, we had used the step functions to orchestrate the pipeline by creating a statemachine.
+	Each state represents the EMR job.
+	We had also implement the retry mechanism and error handling mechanism.
+	Through lambda function, we will call the statemachine and pass the json input to statemachine.
+	We also use SNS service to send the notification alerts to notify us incase of any failures.
+	
+---------------------------------------------------------------------------------------------------------------------------
+
+Scenario: How did you implement Slowly Changing Dimensions (SCD) in Spark?
+
+Response:
+	We have implemented the SCD using spark by loading the existing data and then compare it with incoming data.
+	If it is type-1, then we will just the existing data without inserting a new records
+	If it is type-2, then we will end the first row and insert the new record with some end date or start date. It is like keeping historic data
+
+----------------------------------------------------------------------------------------------------------------------------
+
+Scenario: What was the biggest challenge in your Spark project?
+
+Response:
+		In my project, the biggest challenge that I had faced is Data Skew ness. We had some top level customers and many sub account customers under that 
+		customer. So, we were millions of transactions for only one customer. this caused the data skew ness. 
+		During the wide transformations, single customer data moved to one partition and task has become very slow and it was running for almost half an hour.
+		Then I implemented the salting technique. I randomly added the salt key to skewed key and redistribute the data and then I removed the salt key.
+		Thats how I handled the data skewness. This is the biggest challenge that I had faced in my project.
+		
+
+----------------------------------------------------------------------------------------------------------------------------
+
