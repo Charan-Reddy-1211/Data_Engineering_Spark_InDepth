@@ -18,6 +18,7 @@ else:
 
 
 df=read_csv_file(spark,file_path)
+print(df.columns)
 # df.cache()
 # print("no of columns before appending : -",df.count())
 # print("No of partitions in df is : -",df.rdd.getNumPartitions())

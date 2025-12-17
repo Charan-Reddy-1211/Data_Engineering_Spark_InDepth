@@ -1,0 +1,192 @@
+1.Scenario: File contains corrupted records. How do you handle bad records in Spark?
+
+Res:
+	In spark there are three different modes in spark read
+	
+	1. PERMISSIVE(default) -> Load all records and put bad ones in one column
+						   -> If string value comes as int then it will read as null
+	2. FAILFAST -> Fails Immeadiately 
+				-> If string value comes as int, Job will fail
+	3. DROPMALFORMED -> Drop bad or corrupted records --> 
+					 -> If string value comes as int, then it will be dropped
+					 
+spark.read.option("mode","PERMISSIVE").option("columnNameOfCorruptRecord","bad").csv()
+spark.read.option("mode","FAILFAST").csv()
+spark.read.option("mode","DROPMALFORMED").csv()
+
+----------------------------------------------------------------------------------------------
+2.You need to remove duplicates based on one column
+
+Res:
+	It depends on the requirement
+	-> Drop both columns -> Custom code count(*)>1 delete
+	-> Keep one and drop another -> dropDuplicates(["id"])
+	-> Keep one on specific rule -> Use row number
+	
+--------------------------------------------------------------------------------------------
+
+3.Scenario: A job is slow due to wide transformations
+
+Response:
+	when we do the wide transformations like group by, joins ,distincts, the data has to shuffle across\
+	the network.
+	Then we can check in Spark UI if any task is taking long time which we call it as data skew and see if any data is spilling to disk 
+	or is it because of small file problems
+	Once we find the task, then we can check the code and see if we can do any broadcast join on small data sets and if there is data skew,
+	then we can use the salting technique to redistribute the data. We can also enable the AQE to do the auto broadcast or repartition
+	
+------------------------------------------------------------------------------------------------
+
+4. Scenario: Two datasets have different number formats
+
+Response:
+	Example like salary = "10,000" vs "10000"
+	
+	regexp_replace("salary",",","").cast("int")
+	
+------------------------------------------------------------------------------------------------
+
+5. Scenario: You want to read latest file from S3 / local / HDFS
+
+	s3 -> we can use paginator and loop through the folders
+		paginator=s3.get_paginator('list_objects_v2')
+		
+		pages=paginator.paginate(Bucket="",Prefix="folder/")
+		
+		for page in pages:
+		
+	
+	local -> import os
+				os.listdir(path)-> give files in path
+				os.path.getctrtime(filename) -> give some time
+				import datetime
+				datetime,datetime.fromtimestamp(os.path.getctrtime(filename))
+				
+--------------------------------------------------------------------------------------------------
+
+6. Scenario: A join is taking too long. What do you do?
+
+Response:
+	if any join is taking longer time, then we can check in spark UI and see if any task is taking longer time to run
+	which indicates skew. to resolve that we can use salting technique and to avoid more shuffling we can also do the 
+	broadcast joins for the small datasets. or we can enable the AQE
+	
+
+
+-------------------------------------------------------------------------------------------------------
+
+7. Scenario: You need to write data in partitioned table
+
+Response: 
+	first i will make sure the partition column is available in data frame. then spark automatically creates the directories for each partition.
+	
+
+
+----------------------------------------------------------------------------------------------------------
+
+8. Scenario: You must prevent multiple Spark jobs from writing to the same location
+
+Response:
+	First I will write the job1 & job2 to temp location. which ever completes first that will be write to final path and second one will fail.
+	
+	
+----------------------------------------------------------------------------------------------------------
+
+9. Scenario: Optimize a heavy join on large fact + dimension tables
+
+Response:
+
+	First I will check if dimension tables can be broadcasted. if not, then I can enable the AQE. Next thing is I will check if any data is skew,
+	THen I can do the salting technique. We can also implement bucketing on the joining keys in hive tables.
+	
+	
+----------------------------------------------------------------------------------------------------------
+
+10. Scenario: You want to prevent small file problem
+
+Response:
+	If spark writes the data, each partition creates one file. if no of partitions are high then it creates many small files which can cause slowness 
+	of the job. We can optimize by below technique
+	
+	1. Repartition
+	2. We can also enable the AQE which can merge small shuffle partitions and use options like maxrecordsperfile to control output file size.
+	
+---------------------------------------------------------------------------------------------------------------
+
+Scenario: Job fails due to OutOfMemory
+
+Response:
+	When job fails due to OOM, first I will check UI which stage is failed. If it is due to skew or large shuffle or any large data set is cached
+	
+	Then I will try to optimize the joins if there are any datasets that can be broadcasted.
+	If any skew happened then we do the salting technique and repartition the data
+	If needed, i can increase the executor memory
+	We can select only the required columns before joining the large datasets
+
+-----------------------------------------------------------------------------------------------------------------
+
+Scenario: How did you handle data skew in your project?
+
+Response:
+	In my project, we have a large customer base in germany and one of the executor got stuck for 30 mins.
+	One of the customers has got many transactions than the ususal which caused the data skew and task was running for a long time
+	then we used the salting technique to redistribute the data. 
+	
+	Apart from these, we can also enable the AQE and repartition the data.
+	Broadcasting the small tables
+	
+----------------------------------------------------------------------------------------------------------------------
+Scenario: How did you improve the performance of your Spark job?
+
+Response:
+	1. we can use cache for reused data frame
+	2. Use broadcast join for small tables
+	3. Use parquet formats instead of csv
+	4. Use Checkpointing for long running jobs
+	5. Avoid using UDF's
+
+------------------------------------------------------------------------------------------------------------------------
+Scenario: How do you ensure data quality in your Spark project?
+
+Response:
+	1. Schema validation of input file
+	2. Null Checks
+	3. Mandatory checks like customerid should not be null
+	4. Duplicates
+	5. Reference data validations like config data match
+	6. Data type checks
+	
+--------------------------------------------------------------------------------------------------------------------------
+
+Scenario: How did you orchestrate your Spark pipeline?
+
+Response:
+	In our project, we had used the step functions to orchestrate the pipeline by creating a statemachine.
+	Each state represents the EMR job.
+	We had also implement the retry mechanism and error handling mechanism.
+	Through lambda function, we will call the statemachine and pass the json input to statemachine.
+	We also use SNS service to send the notification alerts to notify us incase of any failures.
+	
+---------------------------------------------------------------------------------------------------------------------------
+
+Scenario: How did you implement Slowly Changing Dimensions (SCD) in Spark?
+
+Response:
+	We have implemented the SCD using spark by loading the existing data and then compare it with incoming data.
+	If it is type-1, then we will just the existing data without inserting a new records
+	If it is type-2, then we will end the first row and insert the new record with some end date or start date. It is like keeping historic data
+
+----------------------------------------------------------------------------------------------------------------------------
+
+Scenario: What was the biggest challenge in your Spark project?
+
+Response:
+		In my project, the biggest challenge that I had faced is Data Skew ness. We had some top level customers and many sub account customers under that 
+		customer. So, we were millions of transactions for only one customer. this caused the data skew ness. 
+		During the wide transformations, single customer data moved to one partition and task has become very slow and it was running for almost half an hour.
+		Then I implemented the salting technique. I randomly added the salt key to skewed key and redistribute the data and then I removed the salt key.
+		Thats how I handled the data skewness. This is the biggest challenge that I had faced in my project.
+		
+
+----------------------------------------------------------------------------------------------------------------------------
+
