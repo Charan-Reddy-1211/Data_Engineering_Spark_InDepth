@@ -1,0 +1,15 @@
+{
+"index":"IntegerType()",
+"airline":"StringType()",
+"flight":"StringType()",
+"source_city":"StringType()",
+"departure_time":"StringType()",
+"stops":"StringType()",
+"arrival_time":"StringType()",
+"destination_city":"StringType()",
+"class":"StringType()",
+"duration":"FloatType()",
+"days_left":"IntegerType()",
+"price":"IntegerType()",
+"date":"DateType()"
+}
